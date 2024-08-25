@@ -1,0 +1,48 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_DEFAULT_REGION = 'us-east-1'
+        S3_BUCKET = 'my-terraform-durga-bucket'
+    }
+
+    stages {
+        stage('Clone repository') {
+            steps {
+                git 'https://github.com/butchadurgarao143/terraform-jenkins-cicd.git'
+            }
+        }
+
+        stage('Install Terraform') {
+            steps {
+                sh 'curl -o terraform.zip https://releases.hashicorp.com/terraform/1.3.5/terraform_1.3.5_linux_amd64.zip'
+                sh 'unzip terraform.zip'
+                sh 'mv terraform /usr/local/bin/'
+            }
+        }
+
+        stage('Initialize Terraform') {
+            steps {
+                sh 'terraform init'
+            }
+        }
+
+        stage('Apply Terraform') {
+            steps {
+                sh 'terraform apply -auto-approve'
+            }
+        }
+
+        stage('Deploy to S3') {
+            steps {
+                withAWS(credentials: 'MY_AWS_JENKIN_ID') {
+                    s3Upload(
+                        bucket: "${S3_BUCKET}",
+                        file: 'index1.html',
+                        path: 'deploy/'
+                    )
+                }
+            }
+        }
+    }
+}
